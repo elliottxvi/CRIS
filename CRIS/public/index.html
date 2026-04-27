@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Newcomer Resource Platform</title>
+
+  <style>
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      margin: 0;
+      background: #f5f7fb;
+      color: #2c3e50;
+    }
+
+    header {
+      background: white;
+      padding: 15px 40px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+    }
+
+    header h2 {
+      margin: 0;
+      font-weight: 600;
+    }
+
+    .hero {
+      text-align: center;
+      padding: 60px 20px 30px;
+    }
+
+    .hero h1 {
+      font-size: 36px;
+      margin-bottom: 10px;
+    }
+
+    .hero p {
+      color: #7f8c8d;
+      font-size: 16px;
+    }
+
+    .search-bar {
+      margin-top: 20px;
+    }
+
+    input, select {
+      padding: 12px;
+      border-radius: 10px;
+      border: 1px solid #ddd;
+      margin: 5px;
+      width: 220px;
+    }
+
+    button {
+      padding: 12px 18px;
+      border: none;
+      border-radius: 10px;
+      background: #2c7be5;
+      color: white;
+      cursor: pointer;
+      transition: 0.2s;
+    }
+
+    button:hover {
+      background: #1a5edb;
+    }
+
+    .results {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 20px;
+      padding: 40px;
+    }
+
+    .card {
+      background: white;
+      padding: 20px;
+      border-radius: 16px;
+      box-shadow: 0 6px 16px rgba(0,0,0,0.08);
+      transition: 0.25s;
+      cursor: pointer;
+      position: relative;
+    }
+
+    .card:hover {
+      transform: translateY(-6px);
+    }
+
+    .card h3 {
+      margin: 0 0 10px;
+    }
+
+    .category {
+      font-size: 12px;
+      padding: 5px 10px;
+      border-radius: 20px;
+      background: #ecf3ff;
+      display: inline-block;
+      margin-bottom: 10px;
+    }
+
+    .detail-panel {
+      background: white;
+      padding: 20px;
+      margin: 10px auto;
+      width: 300px;
+      border-radius: 14px;
+      box-shadow: 0 6px 16px rgba(0,0,0,0.1);
+    }
+
+    .admin-controls button {
+      margin-right: 5px;
+      margin-top: 10px;
+    }
+
+    .delete-btn {
+      background: #e74c3c;
+    }
+
+    .login-box {
+      display: none;
+      position: fixed;
+      top: 30%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: white;
+      padding: 30px;
+      border-radius: 14px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+    }
+
+    .top-controls {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+    }
+  </style>
+</head>
+
+<body>
+
+<header>
+  <h2>🌍 Newcomer Resources</h2>
+
+  <div class="top-controls">
+    <select onchange="changeLanguage(this.value)">
+      <option value="en">EN</option>
+      <option value="es">ES</option>
+      <option value="fr">FR</option>
+      <option value="ar">AR</option>
+      <option value="zh">ZH</option>
+    </select>
+
+    <button onclick="showLogin()">Admin</button>
+  </div>
+</header>
+
+<div class="hero">
+  <h1>Find Support Near You</h1>
+  <p>Housing, legal, health, and community resources for newcomers in Cleveland</p>
+
+  <div class="search-bar">
+    <input id="searchInput" placeholder="Search services...">
+    
+    <select onchange="filterCategory(this.value)">
+      <option value="">All Categories</option>
+      <option value="housing">Housing</option>
+      <option value="legal">Legal</option>
+      <option value="health">Health</option>
+      <option value="community">Community</option>
+      <option value="education">Education</option>
+    </select>
+
+    <button onclick="search()">Search</button>
+  </div>
+</div>
+
+<div id="results" class="results"></div>
+
+<div class="login-box" id="loginBox">
+  <h3>Admin Login</h3>
+  <input id="password" type="password" placeholder="Password"><br><br>
+  <button onclick="login()">Login</button>
+</div>
+
+<script>
+let services = [];
+let isAdmin = false;
+
+// LOAD DATA
+async function loadServices() {
+  const res = await fetch("/services");
+  services = await res.json();
+  search();
+}
+window.onload = loadServices;
+
+// SEARCH
+function search() {
+  const input = document.getElementById("searchInput").value.toLowerCase();
+  const resultsDiv = document.getElementById("results");
+  resultsDiv.innerHTML = "";
+
+  const filtered = input === "" ? services : services.filter(s =>
+    s.name.toLowerCase().includes(input) ||
+    s.category.toLowerCase().includes(input) ||
+    s.description.toLowerCase().includes(input)
+  );
+
+  filtered.forEach(service => {
+    const card = document.createElement("div");
+    card.className = "card";
+
+    card.innerHTML = `
+      <div class="category">${service.category}</div>
+      <h3>${service.name}</h3>
+      <p>${service.description.substring(0, 80)}...</p>
+    `;
+
+    card.onclick = () => showDetails(service, card);
+    resultsDiv.appendChild(card);
+  });
+}
+
+// DETAILS
+function showDetails(service, card) {
+  document.querySelectorAll(".detail-panel").forEach(el => el.remove());
+
+  const panel = document.createElement("div");
+  panel.className = "detail-panel";
+
+  panel.innerHTML = `
+    <h3>${service.name}</h3>
+    <p>${service.description}</p>
+    <p><strong>Contact:</strong> ${service.contact || "N/A"}</p>
+    <p><strong>Address:</strong> ${service.address || "N/A"}</p>
+    ${service.website ? `<p><a href="${service.website}" target="_blank">Visit Website</a></p>` : ""}
+  `;
+
+  if (isAdmin) {
+    panel.innerHTML += `
+      <div class="admin-controls">
+        <button onclick="deleteService(${service.id})">Delete</button>
+      </div>
+    `;
+  }
+
+  card.insertAdjacentElement("afterend", panel);
+}
+
+// LOGIN
+function showLogin() {
+  document.getElementById("loginBox").style.display = "block";
+}
+
+function login() {
+  if (document.getElementById("password").value === "admin123") {
+    isAdmin = true;
+    alert("Admin mode enabled");
+    document.getElementById("loginBox").style.display = "none";
+  }
+}
+
+// DELETE
+async function deleteService(id) {
+  await fetch(`/services/${id}`, { method: "DELETE" });
+  loadServices();
+}
+
+// FILTER
+function filterCategory(cat) {
+  document.getElementById("searchInput").value = cat;
+  search();
+}
+
+// LANGUAGE
+function changeLanguage(lang) {
+  document.body.dir = (lang === "ar") ? "rtl" : "ltr";
+}
+</script>
+
+</body>
+</html>

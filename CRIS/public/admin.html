@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Admin Dashboard</title>
+
+  <style>
+    body {
+      font-family: Arial;
+      margin: 0;
+      background: #f4f6fb;
+    }
+
+    header {
+      background: #111;
+      color: white;
+      padding: 15px;
+      text-align: center;
+    }
+
+    .container {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+      padding: 20px;
+    }
+
+    .box {
+      background: white;
+      padding: 20px;
+      border-radius: 12px;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+    }
+
+    input, textarea, select {
+      width: 100%;
+      padding: 10px;
+      margin: 6px 0;
+      border-radius: 8px;
+      border: 1px solid #ddd;
+    }
+
+    button {
+      padding: 10px;
+      width: 100%;
+      background: black;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+    }
+
+    .card {
+      background: #fff;
+      padding: 10px;
+      margin: 10px 0;
+      border-radius: 10px;
+      border: 1px solid #eee;
+    }
+
+    .actions button {
+      width: 48%;
+      margin-top: 5px;
+    }
+
+    .edit {
+      background: #3498db;
+    }
+
+    .delete {
+      background: #e74c3c;
+    }
+  </style>
+</head>
+
+<body>
+
+<header>
+  ADMIN DASHBOARD
+</header>
+
+<div class="container">
+
+  <!-- CREATE -->
+  <div class="box">
+    <h3>Add New Resource</h3>
+
+    <input id="name" placeholder="Name">
+    <textarea id="description" placeholder="Description"></textarea>
+
+    <select id="category">
+      <option>housing</option>
+      <option>legal</option>
+      <option>health</option>
+      <option>education</option>
+      <option>community</option>
+    </select>
+
+    <input id="contact" placeholder="Contact">
+    <input id="address" placeholder="Address">
+    <input id="website" placeholder="Website">
+
+    <button onclick="add()">Add Resource</button>
+  </div>
+
+  <!-- LIST -->
+  <div class="box">
+    <h3>Existing Resources</h3>
+    <div id="list"></div>
+  </div>
+
+</div>
+
+<script>
+let services = [];
+
+async function load() {
+  const res = await fetch("/services");
+  services = await res.json();
+  render();
+}
+
+window.onload = load;
+
+/* CREATE */
+async function add() {
+  await fetch("/services", {
+    method: "POST",
+    headers: {"Content-Type": "application/json"},
+    body: JSON.stringify({
+      name: name.value,
+      description: description.value,
+      category: category.value,
+      contact: contact.value,
+      address: address.value,
+      website: website.value
+    })
+  });
+
+  load();
+}
+
+/* RENDER */
+function render() {
+  const list = document.getElementById("list");
+  list.innerHTML = "";
+
+  services.forEach(s => {
+    const div = document.createElement("div");
+    div.className = "card";
+
+    div.innerHTML = `
+      <b>${s.name}</b><br>
+      ${s.category}
+      <div class="actions">
+        <button class="edit" onclick="editItem(${s.id})">Edit</button>
+        <button class="delete" onclick="removeItem(${s.id})">Delete</button>
+      </div>
+    `;
+
+    list.appendChild(div);
+  });
+}
+
+/* DELETE */
+async function removeItem(id) {
+  await fetch(`/services/${id}`, { method: "DELETE" });
+  load();
+}
+
+/* EDIT */
+function editItem(id) {
+  const item = services.find(s => s.id === id);
+
+  const newName = prompt("Edit name", item.name);
+  const newDesc = prompt("Edit description", item.description);
+
+  fetch(`/services/${id}`, {
+    method: "PUT",
+    headers: {"Content-Type": "application/json"},
+    body: JSON.stringify({
+      ...item,
+      name: newName,
+      description: newDesc
+    })
+  });
+
+  setTimeout(load, 200);
+}
+</script>
+
+</body>
+</html>
